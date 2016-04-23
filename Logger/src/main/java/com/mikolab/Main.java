@@ -51,13 +51,13 @@ public class Main{
     }
 
     static SerialDataListener listener = new SerialDataListener() {
-        @Override
         public void dataReceived(SerialDataEvent event) {
             //System.out.print(/*"Read:\n" + */ event.getData());
+            final SerialDataEvent finalevent=event;
 
             new Thread(new Runnable() {
                 public void run() {
-                    GpsPosition position = parser.parse(event.getData());
+                    GpsPosition position = parser.parse(finalevent.getData());
                     if(position!=null) {
                         System.out.println(position.toString());
                     }
