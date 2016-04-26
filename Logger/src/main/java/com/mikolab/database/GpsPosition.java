@@ -9,21 +9,20 @@ public class GpsPosition {
 
     long id=-1;
     public String rawNMEA = "";
-    public float time = 0.0f;
+
+    public float utcTime = 0.0f;
+    public int date = 0;
+    public long timestamp = 0;
+
     public float lat = 0.0f;
     public float lon = 0.0f;
     public boolean fixed = false;
-    public int quality = 0;
-    public float dir = 0.0f;
+    public float course = 0.0f;
     public float altitude = 0.0f;
-    public float velocity = 0.0f;
-
-    public void updatefix() {
-        fixed = quality > 0;
-    }
+    public float speed = 0.0f;
 
     public String toString() {
-        return String.format("POSITION: lat: %f, lon: %f, time: %f, Q: %d, dir: %f, alt: %f, vel: %f", lat, lon, time, quality, dir, altitude, velocity);
+        return String.format("POSITION: lat: %f, lon: %f, utcTime: %f, course: %f, alt: %f, vel: %f", lat, lon, utcTime,  course, altitude, speed);
     }
     public String toJson() {
         return "";
