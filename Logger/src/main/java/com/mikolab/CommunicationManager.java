@@ -21,11 +21,14 @@ public class CommunicationManager {
 
     public boolean initDevice(Device dev){
 
+        System.out.print("Init ");
         switch (dev){
             case GPS:
+                System.out.print("GPS \n");
                 gps.init();
                 break;
             case IMU:
+                System.out.print("IMU \n");
                 imu.init();
                 break;
         }
@@ -34,12 +37,15 @@ public class CommunicationManager {
 
     public boolean startLogging(Device dev){
 
+        System.out.print("Start Logging: ");
         switch (dev){
             case GPS:
                 gps.startLogging();
+                System.out.print("GPS \n");
                 break;
             case IMU:
                 imu.startLogging();
+                System.out.print("IMU \n");
                 break;
         }
         return true;
@@ -47,12 +53,15 @@ public class CommunicationManager {
 
     public boolean stopLogging(Device dev){
 
+        System.out.print("Stop Logging: ");
         switch (dev){
             case GPS:
                 gps.stopLogging();
+                System.out.print("GPS \n");
                 break;
             case IMU:
                 imu.stopLogging();
+                System.out.print("IMU \n");
                 break;
         }
 
