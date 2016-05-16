@@ -4,6 +4,7 @@ import com.mikolab.HardwareInterfaces.GPSListener;
 import com.mikolab.Location.nmeaFrames.GPGGA;
 import com.mikolab.Location.nmeaFrames.GPRMC;
 import com.mikolab.Location.nmeaFrames.GPVTG;
+import com.mikolab.Logger.DataLogger;
 
 
 /**
@@ -15,13 +16,17 @@ public class LocationManager implements GPSListener{
 
     GpsPosition current= new GpsPosition();
 
-    //todo listener for saving
+    DataLogger dataLogger;
 
     private void newPosition(){
         if(current!=null){
             savePosition(current);
         }
         current=new GpsPosition();
+    }
+
+    public void setDataLogger(DataLogger dataLogger){
+        this.dataLogger=dataLogger;
     }
 
     public void nmeaFrameReceived(NMEA_TYPE type, String frame) {
@@ -57,6 +62,7 @@ public class LocationManager implements GPSListener{
 
     private void savePosition(GpsPosition position){
 
+        dataLogger.saveGpsPosition(position);
         position.print();
 
 }

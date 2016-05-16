@@ -36,7 +36,7 @@ public class GpsPosition {
     }
 
     public String toString() {
-        return String.format("POSITION: lat: %f, lon: %f, utcTime: %f, course: %f, alt: %f, vel: %f", lat, lon, utcTime,  course, altitude, speed);
+        return String.format("%d, %f, %f, %f, %f, %f, %f",date, utcTime, lat, lon, course, altitude, speed);
     }
     public String toJson() {
         return "";

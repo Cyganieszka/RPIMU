@@ -7,6 +7,7 @@ package com.mikolab;
 import com.mikolab.HardwareImpl.FGPMMOPA6H;
 import com.mikolab.HardwareImpl.MPU9255;
 import com.mikolab.Location.LocationManager;
+import com.mikolab.Logger.FileManager;
 
 
 public class Main{
@@ -18,7 +19,11 @@ public class Main{
             throws InterruptedException, NumberFormatException
     {
 
+        FileManager fileManager= new FileManager();
+        fileManager.init();
         LocationManager locationManager= new LocationManager();
+
+        locationManager.setDataLogger(fileManager);
 
         FGPMMOPA6H gps= new FGPMMOPA6H(locationManager);
         MPU9255 imu= new MPU9255();
