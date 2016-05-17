@@ -7,6 +7,7 @@ package com.mikolab;
 import com.mikolab.HardwareImpl.FGPMMOPA6H;
 import com.mikolab.HardwareImpl.MPU9255;
 import com.mikolab.Location.LocationManager;
+import com.mikolab.Logger.BtManager;
 import com.mikolab.Logger.FileManager;
 
 
@@ -19,6 +20,8 @@ public class Main{
             throws InterruptedException, NumberFormatException
     {
 
+        BtManager btmanager=new BtManager();
+        btmanager.init();
         FileManager fileManager= new FileManager();
         fileManager.init();
         LocationManager locationManager= new LocationManager();
