@@ -1,6 +1,7 @@
 package com.mikolab.Logger;
 
 import com.mikolab.Location.GpsPosition;
+import com.mikolab.Location.interfaces.GPSLogger;
 
 import java.io.BufferedWriter;
 import java.io.File;
@@ -14,7 +15,7 @@ import java.util.concurrent.TimeUnit;
 /**
  * Created by agnieszka on 03.05.2016.
  */
-public class FileManager implements DataLogger {
+public class FileManager implements GPSLogger {
 
     DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 

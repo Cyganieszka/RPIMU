@@ -1,1 +1,3 @@
 include 'Logger'
+includeFlat 'LocationManager'
+

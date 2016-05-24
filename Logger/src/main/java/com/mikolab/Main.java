@@ -24,9 +24,10 @@ public class Main{
         btmanager.init();
         FileManager fileManager= new FileManager();
         fileManager.init();
-        LocationManager locationManager= new LocationManager();
 
-        locationManager.setDataLogger(fileManager);
+        LocationManager locationManager= new LocationManager();
+        locationManager.setGPSLogger(fileManager);
+
 
         FGPMMOPA6H gps= new FGPMMOPA6H(locationManager);
         MPU9255 imu= new MPU9255();

@@ -1,8 +1,8 @@
 package com.mikolab.HardwareImpl;
 
 import com.mikolab.HardwareInterfaces.GPSInterface;
-import com.mikolab.HardwareInterfaces.GPSListener;
 import com.mikolab.Location.NMEA_TYPE;
+import com.mikolab.Location.interfaces.GPSListener;
 import com.pi4j.io.serial.*;
 
 /**
