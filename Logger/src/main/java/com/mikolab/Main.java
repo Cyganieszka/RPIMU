@@ -26,7 +26,8 @@ public class Main{
         fileManager.init();
 
         LocationManager locationManager= new LocationManager();
-        locationManager.setGPSLogger(fileManager);
+        locationManager.addGPSLogger(fileManager);
+        locationManager.addGPSLogger(btmanager);
 
 
         FGPMMOPA6H gps= new FGPMMOPA6H(locationManager);

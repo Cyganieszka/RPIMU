@@ -5,8 +5,7 @@ import com.mikolab.Location.interfaces.GPSLogger;
 
 import javax.bluetooth.*;
 import javax.microedition.io.*;
-import java.io.DataInputStream;
-import java.io.IOException;
+import java.io.*;
 import java.util.Vector;
 
 /**
@@ -23,6 +22,9 @@ public class BtManager implements GPSLogger, DiscoveryListener {
     // display local device address and name
     LocalDevice localDevice;
     DiscoveryAgent agent;
+    StreamConnection conn;
+    DataInputStream din;
+    DataOutputStream dout;
 
     public void init() {
 
@@ -44,6 +46,14 @@ public class BtManager implements GPSLogger, DiscoveryListener {
 
             System.out.println("Device Inquiry Completed. ");
             System.out.println("Service Inquiry Started. ");
+
+            //hciconfig hci0 piscan
+//           runCommand("sudo hciconfig hci0 reset");//set discoverable
+//            runCommand("sudo sdptool add SP");
+// runCommand("sudo bluetooth --compat");
+            if(localDevice.setDiscoverable(DiscoveryAgent.GIAC)) {
+                System.out.println("Device set to discoverable");
+            }
 
             UUID uuids[] = new UUID[1];
             uuids[0] = new UUID("0000111100001000800000805f9b34fb", false);
@@ -75,18 +85,25 @@ public class BtManager implements GPSLogger, DiscoveryListener {
                     System.out.println((i + 1) + ". "
                             + remoteDevice.getBluetoothAddress() + " ("
                             + remoteDevice.getFriendlyName(false) + ")");
+
+
                 }
+
             }
+
+
+
 
             // System.out.println("SR: " + sr.toString());
             for (String url : vecServices) {
                 try {
 //                String url = sr.getConnectionURL(
 //                        ServiceRecord.NOAUTHENTICATE_NOENCRYPT, false);
-                    StreamConnection conn = (StreamConnection) Connector.open(url, Connector.READ_WRITE);
+                    conn = (StreamConnection) Connector.open(url, Connector.READ_WRITE);
                     System.out.println(url + " ----=" + conn);
-                    DataInputStream din = new DataInputStream(
+                    din = new DataInputStream(
                             conn.openDataInputStream());
+                    dout = new DataOutputStream((conn.openDataOutputStream()));
                     synchronized (lock) {
                         try {
                             lock.wait(10);
@@ -108,10 +125,50 @@ public class BtManager implements GPSLogger, DiscoveryListener {
             e.printStackTrace();
         }
 
+//        SimpleSPPServer sampleSPPServer=new SimpleSPPServer();
+//        try {
+//            sampleSPPServer.startServer();
+//        } catch (IOException e) {
+//            e.printStackTrace();
+//        }
+
     }
 
-    public void saveGpsPosition(GpsPosition position) {
+    public static void runCommand(String command) {
 
+
+        try {
+        Process proc = null;
+
+            proc = Runtime.getRuntime().exec(command);
+
+
+        BufferedReader reader =
+                new BufferedReader(new InputStreamReader(proc.getInputStream()));
+        String line = "";
+
+            while((line = reader.readLine()) != null) {
+                System.out.print(line + "\n");
+            }
+
+        try {
+            proc.waitFor();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        } catch (IOException e) {
+        e.printStackTrace();
+    }
+    }
+
+
+    public void saveGpsPosition(GpsPosition position) {
+        try {
+            dout.writeUTF(position.toString());
+            dout.flush();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
 
