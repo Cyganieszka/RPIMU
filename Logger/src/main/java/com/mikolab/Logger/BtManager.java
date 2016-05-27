@@ -7,6 +7,10 @@ import javax.bluetooth.*;
 import javax.microedition.io.*;
 import java.io.*;
 import java.util.Vector;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Created by agnieszka on 17.05.2016.
@@ -26,16 +30,45 @@ public class BtManager implements GPSLogger, DiscoveryListener {
     DataInputStream din;
     DataOutputStream dout;
 
-    public void init() {
+
+    private void initLocalDevice() throws BluetoothStateException {
+        localDevice = LocalDevice.getLocalDevice();
+        System.out.println("Address: " + localDevice.getBluetoothAddress());
+        System.out.println("Name: " + localDevice.getFriendlyName());
+        agent = localDevice.getDiscoveryAgent();
+    }
+
+    private void detectDevices() throws BluetoothStateException {
+        System.out.println("Starting device inquiry...");
+        agent.startInquiry(DiscoveryAgent.GIAC, this);
 
         try {
-            localDevice = LocalDevice.getLocalDevice();
-            System.out.println("Address: " + localDevice.getBluetoothAddress());
-            System.out.println("Name: " + localDevice.getFriendlyName());
-            agent = localDevice.getDiscoveryAgent();
-            System.out.println("Starting device inquiry...");
-            agent.startInquiry(DiscoveryAgent.GIAC, this);
+            synchronized (lock) {
+                lock.wait();
+            }
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
 
+        System.out.println("Device Inquiry Completed. ");
+    }
+    private void searchServices() throws IOException {
+        System.out.println("Service Inquiry Started. ");
+
+        //hciconfig hci0 piscan
+//           runCommand("sudo hciconfig hci0 reset");//set discoverable
+//            runCommand("sudo sdptool add SP");
+// runCommand("sudo bluetooth --compat");
+        if(localDevice.setDiscoverable(DiscoveryAgent.GIAC)) {
+            System.out.println("Device set to discoverable");
+        }
+
+        UUID uuids[] = new UUID[1];
+        uuids[0] = new UUID("0000111100001000800000805f9b34fb", false);
+
+        for (RemoteDevice rd : vecDevices) {
+            System.out.println("From: " + rd.getFriendlyName(false));
+            agent.searchServices(null, uuids, rd, this);
             try {
                 synchronized (lock) {
                     lock.wait();
@@ -43,96 +76,120 @@ public class BtManager implements GPSLogger, DiscoveryListener {
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
+        }
 
-            System.out.println("Device Inquiry Completed. ");
-            System.out.println("Service Inquiry Started. ");
+    }
+    private void printSearchResult(){
+        // print all devices in vecDevices
+        int deviceCount = vecDevices.size();
 
-            //hciconfig hci0 piscan
-//           runCommand("sudo hciconfig hci0 reset");//set discoverable
-//            runCommand("sudo sdptool add SP");
-// runCommand("sudo bluetooth --compat");
-            if(localDevice.setDiscoverable(DiscoveryAgent.GIAC)) {
-                System.out.println("Device set to discoverable");
-            }
-
-            UUID uuids[] = new UUID[1];
-            uuids[0] = new UUID("0000111100001000800000805f9b34fb", false);
-
-            for (RemoteDevice rd : vecDevices) {
-                System.out.println("From: " + rd.getFriendlyName(false));
-                agent.searchServices(null, uuids, rd, this);
+        if (deviceCount <= 0) {
+            System.out.println("No Devices Found .");
+        } else {
+            // print bluetooth device addresses and names in the format [ No.
+            // address (name) ]
+            System.out.println("Bluetooth Devices: ");
+            for (int i = 0; i < deviceCount; i++) {
+                RemoteDevice remoteDevice = (RemoteDevice) vecDevices
+                        .elementAt(i);
                 try {
-                    synchronized (lock) {
-                        lock.wait();
-                    }
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
-            }
-
-            // print all devices in vecDevices
-            int deviceCount = vecDevices.size();
-
-            if (deviceCount <= 0) {
-                System.out.println("No Devices Found .");
-            } else {
-                // print bluetooth device addresses and names in the format [ No.
-                // address (name) ]
-                System.out.println("Bluetooth Devices: ");
-                for (int i = 0; i < deviceCount; i++) {
-                    RemoteDevice remoteDevice = (RemoteDevice) vecDevices
-                            .elementAt(i);
                     System.out.println((i + 1) + ". "
                             + remoteDevice.getBluetoothAddress() + " ("
                             + remoteDevice.getFriendlyName(false) + ")");
-
-
-                }
-
-            }
-
-
-
-
-            // System.out.println("SR: " + sr.toString());
-            for (String url : vecServices) {
-                try {
-//                String url = sr.getConnectionURL(
-//                        ServiceRecord.NOAUTHENTICATE_NOENCRYPT, false);
-                    conn = (StreamConnection) Connector.open(url, Connector.READ_WRITE);
-                    System.out.println(url + " ----=" + conn);
-                    din = new DataInputStream(
-                            conn.openDataInputStream());
-                    dout = new DataOutputStream((conn.openDataOutputStream()));
-                    synchronized (lock) {
-                        try {
-                            lock.wait(10);
-                        } catch (InterruptedException e) {
-                            // TODO Auto-generated catch block
-                            e.printStackTrace();
-                        }
-                    }
-                    while (din.available() != 0) {
-                        System.out.print(din.readChar());
-                    }
-                    System.out.println();
                 } catch (IOException e) {
-                    // TODO Auto-generated catch block
+                    System.out.println((i + 1) + ". "
+                            + remoteDevice.getBluetoothAddress());
                     e.printStackTrace();
                 }
             }
-        }catch(IOException e){
+        }
+    }
+
+    private void connectToService(){
+        for (String url : vecServices) {
+            try {
+                conn = (StreamConnection) Connector.open(url, Connector.READ_WRITE);
+                System.out.println(url + " ----=" + conn);
+                din = new DataInputStream(
+                        conn.openDataInputStream());
+                dout = new DataOutputStream((conn.openDataOutputStream()));
+
+                shutdown();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    private void detectAndTryConnect() throws IOException {
+        detectDevices();
+        searchServices();
+        printSearchResult();
+        connectToService();
+    }
+
+    public void init() {
+
+        try {
+            initLocalDevice();
+            Runtime.getRuntime().addShutdownHook(new Thread() {
+                public void run() {
+                    shutdown();
+                }
+            });
+            startScheduleTask();
+        } catch (BluetoothStateException e) {
             e.printStackTrace();
         }
 
-//        SimpleSPPServer sampleSPPServer=new SimpleSPPServer();
+
+
 //        try {
-//            sampleSPPServer.startServer();
-//        } catch (IOException e) {
+//            initLocalDevice();
+//            detectDevices();
+//            searchServices();
+//            printSearchResult();
+//            connectToService();
+//
+//
+//
+//        }catch(IOException e){
 //            e.printStackTrace();
 //        }
 
     }
+
+    private final ScheduledExecutorService scheduler = Executors
+            .newScheduledThreadPool(1);
+
+    public void startScheduleTask() {
+        /**
+         * not using the taskHandle returned here, but it can be used to cancel
+         * the task, or check if it's done (for recurring tasks, that's not
+         * going to be very useful)
+         */
+        final ScheduledFuture<?> taskHandle = scheduler.scheduleAtFixedRate(
+                new Runnable() {
+                    public void run() {
+                        try {
+                                detectAndTryConnect();
+                        }catch(Exception ex) {
+                            ex.printStackTrace();
+                        }
+                    }
+                }, 0, 1, TimeUnit.MINUTES);
+
+    }
+
+
+
+    public void shutdown() {
+        System.out.println("shutdown...");
+        if(scheduler != null) {
+            scheduler.shutdown();
+        }
+    }
+
 
     public static void runCommand(String command) {
 
@@ -163,10 +220,14 @@ public class BtManager implements GPSLogger, DiscoveryListener {
 
 
     public void saveGpsPosition(GpsPosition position) {
+        if(dout==null)return;
         try {
-            dout.writeUTF(position.toString());
-            dout.flush();
+            if(scheduler.isShutdown()) {
+                dout.writeUTF(position.toString());
+                dout.flush();
+            }
         } catch (IOException e) {
+            startScheduleTask();
             e.printStackTrace();
         }
     }
