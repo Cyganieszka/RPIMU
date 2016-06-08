@@ -4,7 +4,7 @@ buildscript {
         mavenCentral()
     }
     dependencies {
-        classpath 'com.android.tools.build:gradle:0.9.+'
+        classpath 'com.android.tools.build:gradle:1.5.0'
     }
 }
 
@@ -16,4 +16,10 @@ allprojects {
 
 task wrapper(type: Wrapper) {
     gradleVersion = '1.10'
+}
+dependencies {
+
+    compile project(':LocationManager')
+    compile project(':Logger')
+
 }

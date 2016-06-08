@@ -7,10 +7,7 @@ import javax.bluetooth.*;
 import javax.microedition.io.*;
 import java.io.*;
 import java.util.Vector;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 
 /**
  * Created by agnieszka on 17.05.2016.
@@ -27,8 +24,8 @@ public class BtManager implements GPSLogger, DiscoveryListener {
     LocalDevice localDevice;
     DiscoveryAgent agent;
     StreamConnection conn;
-    DataInputStream din;
-    DataOutputStream dout;
+    ObjectInputStream din;
+    ObjectOutputStream dout;
 
 
     private void initLocalDevice() throws BluetoothStateException {
@@ -106,13 +103,18 @@ public class BtManager implements GPSLogger, DiscoveryListener {
     }
 
     private void connectToService(){
-        for (String url : vecServices) {
+        if(vecServices.size()>0) {
+
+            String url = vecServices.get(0);
             try {
                 conn = (StreamConnection) Connector.open(url, Connector.READ_WRITE);
                 System.out.println(url + " ----=" + conn);
-                din = new DataInputStream(
-                        conn.openDataInputStream());
-                dout = new DataOutputStream((conn.openDataOutputStream()));
+
+
+                din = new ObjectInputStream(
+                        conn.openInputStream());
+                dout = new ObjectOutputStream((conn.openOutputStream()));
+
 
                 shutdown();
             } catch (IOException e) {
@@ -220,14 +222,18 @@ public class BtManager implements GPSLogger, DiscoveryListener {
 
 
     public void saveGpsPosition(GpsPosition position) {
-        if(dout==null)return;
+        if(dout==null )return;
         try {
             if(scheduler.isShutdown()) {
-                dout.writeUTF(position.toString());
+                dout.writeObject(position);
+                //dout.writeUTF(position.toString());
                 dout.flush();
             }
         } catch (IOException e) {
-            startScheduleTask();
+
+                if(scheduler.isShutdown());
+                    startScheduleTask();
+
             e.printStackTrace();
         }
     }

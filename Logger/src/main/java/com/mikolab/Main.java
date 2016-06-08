@@ -6,6 +6,7 @@ package com.mikolab;
 
 import com.mikolab.HardwareImpl.FGPMMOPA6H;
 import com.mikolab.HardwareImpl.MPU9255;
+import com.mikolab.Helper.JniBridge;
 import com.mikolab.Location.LocationManager;
 import com.mikolab.Logger.BtManager;
 import com.mikolab.Logger.FileManager;
@@ -19,6 +20,9 @@ public class Main{
     public static void main(String args[])
             throws InterruptedException, NumberFormatException
     {
+
+      //  JniBridge test= new JniBridge();
+      //  test.sayHi("a",7);
 
         BtManager btmanager=new BtManager();
         btmanager.init();
