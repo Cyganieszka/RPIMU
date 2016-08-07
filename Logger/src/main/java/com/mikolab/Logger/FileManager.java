@@ -1,7 +1,9 @@
 package com.mikolab.Logger;
 
 import com.mikolab.Location.GpsPosition;
+import com.mikolab.Location.ImuPosition;
 import com.mikolab.Location.interfaces.GPSLogger;
+import com.mikolab.Location.interfaces.IMULogger;
 
 import java.io.BufferedWriter;
 import java.io.File;
@@ -15,7 +17,7 @@ import java.util.concurrent.TimeUnit;
 /**
  * Created by agnieszka on 03.05.2016.
  */
-public class FileManager implements GPSLogger {
+public class FileManager implements GPSLogger,IMULogger {
 
     DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 
@@ -61,7 +63,23 @@ public class FileManager implements GPSLogger {
         try {
             fw = new FileWriter(file,true);
             bw = new BufferedWriter(fw);
-            //bw.write(position.toJson());
+            bw.write(position.toString()+"\n");
+            bw.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    @Override
+    public void saveImuPosition(ImuPosition position) {
+        File file= getCurrentImuFile();
+
+
+        BufferedWriter bw=null;
+        FileWriter fw = null;
+        try {
+            fw = new FileWriter(file,true);
+            bw = new BufferedWriter(fw);
             bw.write(position.toString()+"\n");
             bw.close();
         } catch (IOException e) {
@@ -79,7 +97,7 @@ public class FileManager implements GPSLogger {
             Date now=new Date();
             long minutesDiff=getDateDiff(gpsMarker,now,TimeUnit.MINUTES);
             System.out.println(minutesDiff+ "diff ");
-            if(minutesDiff>60){
+            if(minutesDiff>10){
                 gpsMarker= new Date();
                 currentGpsFile=new File(gpsFilePath+File.separator+dateFormat.format(gpsMarker)+".txt");
             }
@@ -94,6 +112,30 @@ public class FileManager implements GPSLogger {
 
         return currentGpsFile;
     }
+
+    private File getCurrentImuFile(){
+        if(currentImuFile==null){
+            imuMarker= new Date();
+            currentImuFile=new File(imuFilePath+File.separator+dateFormat.format(imuMarker)+".txt");
+        }else{
+            Date now=new Date();
+            long minutesDiff=getDateDiff(imuMarker,now,TimeUnit.MINUTES);
+           if(minutesDiff>10){
+                imuMarker= new Date();
+                currentImuFile=new File(imuFilePath+File.separator+dateFormat.format(imuMarker)+".txt");
+            }
+        }
+        if (!currentImuFile.exists()) {
+            try {
+                currentImuFile.createNewFile();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+
+        return currentImuFile;
+    }
+
 
 
 

@@ -6,7 +6,7 @@ package com.mikolab;
 
 import com.mikolab.HardwareImpl.FGPMMOPA6H;
 import com.mikolab.HardwareImpl.MPU9255;
-import com.mikolab.Helper.JniBridge;
+import com.mikolab.Jni.Rtimu;
 import com.mikolab.Location.LocationManager;
 import com.mikolab.Logger.BtManager;
 import com.mikolab.Logger.FileManager;
@@ -21,8 +21,12 @@ public class Main{
             throws InterruptedException, NumberFormatException
     {
 
-      //  JniBridge test= new JniBridge();
-      //  test.sayHi("a",7);
+
+        Rtimu rtimu=new Rtimu();
+
+
+
+
 
         BtManager btmanager=new BtManager();
         btmanager.init();
@@ -32,21 +36,28 @@ public class Main{
         LocationManager locationManager= new LocationManager();
         locationManager.addGPSLogger(fileManager);
         locationManager.addGPSLogger(btmanager);
+        locationManager.addIMULogger(fileManager);
 
 
         FGPMMOPA6H gps= new FGPMMOPA6H(locationManager);
-        MPU9255 imu= new MPU9255();
+        MPU9255 imu= new MPU9255(locationManager);
 
         CommunicationManager comm=new CommunicationManager(gps, imu);
 
         comm.initDevice(Device.GPS);
         comm.startLogging(Device.GPS);
 
+        comm.initDevice(Device.IMU);
+        comm.startLogging(Device.IMU);
+
+
         while (true)
         {
                 // wait 100 ms before continuing
                 Thread.sleep(10);
         }
+
+
     }
 
 
