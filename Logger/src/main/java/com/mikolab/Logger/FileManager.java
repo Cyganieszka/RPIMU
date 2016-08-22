@@ -11,6 +11,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
+import java.util.Calendar;
 import java.util.Date;
 import java.util.concurrent.TimeUnit;
 
@@ -19,22 +20,18 @@ import java.util.concurrent.TimeUnit;
  */
 public class FileManager implements GPSLogger,IMULogger {
 
-    DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+    DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
+    DateFormat timeFormat = new SimpleDateFormat("HH:mm");
+    DateFormat dateTimeFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 
     private String mainPath="/home/pi";
     private String rootFolder="RPIMU";
 
-    private String GPSfolder="gps";
-    private String IMUfolder="imu";
+    Date stamp=new Date();
 
-    private File currentGpsFile=null;
-    private File currentImuFile=null;
+    private File gpsFile=null;
+    private File imuFile=null;
 
-    private Date gpsMarker=null;
-    private Date imuMarker=null;
-
-    private String gpsFilePath;
-    private String imuFilePath;
 
 
     public void init(){
@@ -42,16 +39,44 @@ public class FileManager implements GPSLogger,IMULogger {
         if(!path.exists()){
             path.mkdir();
         }
-        File gpsPath=new File(mainPath+File.separator+rootFolder+File.separator+GPSfolder);
-        if(!gpsPath.exists()){
-            gpsPath.mkdir();
+        createNewFiles();
+        stamp=new Date();
+    }
+
+    String todayFolderPath=null;
+    private String getToadyFolder(){
+        if(todayFolderPath==null || dayChanged(new Date(),stamp)) {
+            File todayFolder = new File(mainPath + File.separator + rootFolder + File.separator + dateFormat.format(new Date()));
+            if (!todayFolder.exists()) {
+                todayFolder.mkdir();
+            }
+            todayFolderPath=todayFolder.getAbsolutePath();
         }
-        gpsFilePath=gpsPath.getAbsolutePath();
-        File imuPath=new File(mainPath+File.separator+rootFolder+File.separator+IMUfolder);
-        if(!imuPath.exists()){
-            imuPath.mkdir();
+        return todayFolderPath;
+    }
+    String todaySubFolderPath=null;
+    private String getToadySubFolder(){
+        if(todaySubFolderPath==null || hourChanged(new Date(),stamp)) {
+            File todayFolder = new File(getToadyFolder() + File.separator + timeFormat.format(new Date()));
+            if (!todayFolder.exists()) {
+                todayFolder.mkdir();
+            }
+            todaySubFolderPath = todayFolder.getAbsolutePath();
         }
-        imuFilePath=imuPath.getAbsolutePath();
+        return todaySubFolderPath;
+    }
+
+    private void createNewFiles(){
+        Date date=new Date();
+        gpsFile=new File(getToadySubFolder()+File.separator+"GPS_"+dateTimeFormat.format(date));
+        imuFile=new File(getToadySubFolder()+File.separator+"IMU_"+dateTimeFormat.format(date));
+
+        try {
+            gpsFile.createNewFile();
+            imuFile.createNewFile();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     public void saveGpsPosition(GpsPosition position) {
@@ -89,51 +114,43 @@ public class FileManager implements GPSLogger,IMULogger {
 
     }
 
-    private File getCurrentGpsFile(){
-        if(currentGpsFile==null){
-            gpsMarker= new Date();
-            currentGpsFile=new File(gpsFilePath+File.separator+dateFormat.format(gpsMarker)+".txt");
-        }else{
-            Date now=new Date();
-            long minutesDiff=getDateDiff(gpsMarker,now,TimeUnit.MINUTES);
-            System.out.println(minutesDiff+ "diff ");
-            if(minutesDiff>10){
-                gpsMarker= new Date();
-                currentGpsFile=new File(gpsFilePath+File.separator+dateFormat.format(gpsMarker)+".txt");
-            }
-        }
-        if (!currentGpsFile.exists()) {
-            try {
-                currentGpsFile.createNewFile();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
+    private boolean dayChanged(Date date1, Date date2){
+        Calendar now = Calendar.getInstance();
+        now.setTime(date1);
+        Calendar then = Calendar.getInstance();
+        then.setTime(date2);
 
-        return currentGpsFile;
+        return now.get(Calendar.DAY_OF_MONTH)!=then.get(Calendar.DAY_OF_MONTH);
     }
 
-    private File getCurrentImuFile(){
-        if(currentImuFile==null){
-            imuMarker= new Date();
-            currentImuFile=new File(imuFilePath+File.separator+dateFormat.format(imuMarker)+".txt");
-        }else{
-            Date now=new Date();
-            long minutesDiff=getDateDiff(imuMarker,now,TimeUnit.MINUTES);
-           if(minutesDiff>10){
-                imuMarker= new Date();
-                currentImuFile=new File(imuFilePath+File.separator+dateFormat.format(imuMarker)+".txt");
-            }
-        }
-        if (!currentImuFile.exists()) {
-            try {
-                currentImuFile.createNewFile();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
+    private boolean hourChanged(Date date1, Date date2){
+        Calendar now = Calendar.getInstance();
+        now.setTime(date1);
+        Calendar then = Calendar.getInstance();
+        then.setTime(date2);
 
-        return currentImuFile;
+        return now.get(Calendar.HOUR_OF_DAY)!=then.get(Calendar.HOUR_OF_DAY);
+    }
+
+    private void createnewFilesIfNeeded(){
+        Date now=new Date();
+        long minutesDiff=getDateDiff(stamp,now,TimeUnit.MINUTES);
+
+        if(minutesDiff>10){
+            createNewFiles();
+            stamp=new Date();
+        }
+    }
+
+    private File getCurrentGpsFile(){
+        createnewFilesIfNeeded();
+        return gpsFile;
+    }
+
+
+    private File getCurrentImuFile(){
+        createnewFilesIfNeeded();
+        return imuFile;
     }
 
 

@@ -1,15 +1,24 @@
 package com.mikolab.HardwareImpl;
 
+import com.fazecast.jSerialComm.SerialPort;
+import com.fazecast.jSerialComm.SerialPortDataListener;
+import com.fazecast.jSerialComm.SerialPortEvent;
 import com.mikolab.HardwareInterfaces.GPSInterface;
 import com.mikolab.Location.NMEA_TYPE;
 import com.mikolab.Location.interfaces.GPSListener;
-import com.pi4j.io.serial.*;
 
 /**
  * Created by User on 2016-04-26.
  */
 public class FGPMMOPA6H implements GPSInterface {
-    final Serial serial = SerialFactory.createInstance();
+
+    ///
+    //#define PMTK_SET_BAUD_57600 "$PMTK251,57600*2C"
+    //#define PMTK_SET_NMEA_UPDATE_5HZ  "$PMTK220,200*2C"
+    //#define PMTK_API_SET_FIX_CTL_5HZ  "$PMTK300,200,0,0,0,0*2F"
+
+    ///
+     SerialPort serial;
     final GPSListener gpsListener;
     final boolean isFixed=false;
 
@@ -17,40 +26,68 @@ public class FGPMMOPA6H implements GPSInterface {
         this.gpsListener = gpsListener;
     }
 
+    String com1="$PMTK251,57600*2C\r\n$PMTK220,100*2F\r\n$PMTK314,0,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0*35\r\n";
+    String com2="";
+    String com3="";
+
+
 
     public boolean init() {
-        String port = System.getProperty("serial.port", Serial.DEFAULT_COM_PORT);
-        int br = Integer.parseInt(System.getProperty("baud.rate", "9600"));
 
-        System.out.println("Serial Communication.");
-        System.out.println(" ... connect using settings: " + Integer.toString(br) +  ", N, 8, 1.");
+        serial = SerialPort.getCommPorts()[0];
+        serial.openPort();
+        serial.setBaudRate(57600);
+        serial.addDataListener(new SerialPortDataListener() {
+            StringBuilder sb=new StringBuilder();
+            @Override
+            public int getListeningEvents() { return SerialPort.LISTENING_EVENT_DATA_AVAILABLE; }
+            @Override
+            public void serialEvent(SerialPortEvent event)
+            {
+                if (event.getEventType() != SerialPort.LISTENING_EVENT_DATA_AVAILABLE)
+                    return;
+                byte[] newData = new byte[serial.bytesAvailable()];
+                serial.readBytes(newData, newData.length);
 
-        serial.setMonitorInterval(1000);
+                for (int i = 0; i < newData.length; ++i) {
+                    if ((char) newData[i] == '\n') {
+                        sb.append((char) newData[i]);
+                        parseMessage(sb.toString());
+                        sb=new StringBuilder();
+                    } else {
+                        sb.append((char) newData[i]);
+                    }
+                }
+            }
+        });
 
-        try
-        {
-            // open the default serial port provided on the GPIO header
-            System.out.println("Opening port [" + port + ":" + Integer.toString(br) + "]");
-            serial.open(port, br);
-            System.out.println("Port is opened.");
 
-            return true;
-        }
-        catch (SerialPortException ex)
-        {
-            System.out.println(" ==>> SERIAL SETUP FAILED : " + ex.getMessage());
-            return false;
-        }
+
+        serial.writeBytes(com1.getBytes(),com1.getBytes().length);
+        return true;
+
 
     }
 
+    SerialPortDataListener listener = new SerialPortDataListener() {
+        @Override
+        public int getListeningEvents() { return SerialPort.LISTENING_EVENT_DATA_WRITTEN; }
+        @Override
+        public void serialEvent(SerialPortEvent event)
+        {
+            if (event.getEventType() == SerialPort.LISTENING_EVENT_DATA_WRITTEN)
+                System.out.println("All bytes were successfully transmitted!");
+        }
+    };
+
     public boolean startLogging() {
-        serial.addListener(listener);
+
+        serial.addDataListener(listener);
         return true;
     }
 
     public boolean stopLogging() {
-        serial.removeListener(listener);
+        serial.removeDataListener();
         return true;
     }
 
@@ -60,85 +97,42 @@ public class FGPMMOPA6H implements GPSInterface {
 
 
 
-//    private SerialDataListener listener =new SerialDataListener() {
-//        public void dataReceived(SerialDataEvent event) {
-//            gpsListener.gpsData(event.getData());// change seperate listeners on different frames
-//        }
-//    };
 
 
-    String lastSentence="";
 
-    SerialDataListener listener = new SerialDataListener() { // todo clean later
-        public void dataReceived(SerialDataEvent event) {
-            String message = event.getData();
-//            System.out.print("-----------------------------------------------------------------------------\n");
-//
-//            System.out.print("message \n\n");
-//            System.out.print(message+"\n");
-//            System.out.print("seperate Frames \n\n");
+        String lastSentence="";
 
-            int idx=0;
+    private void parseMessage(String message){
+       // System.out.print(message+"\n");
+
+        int idx=0;
 
 
-            String lines[] = message.split("\r?\n");
+        String lines[] = message.split("\r?\n");
+        if(lines.length==0)return;
 
-            String firstLine=lines[idx];
+        String firstLine=lines[idx];
 
 
-            if(!firstLine.contains("$") ){
-                if(firstLine.length()>0 && lastSentence.length()>0){
-                    nmeaReceived(lastSentence+firstLine);
-                    //System.out.print(lastSentence+firstLine+"\n");
-                }
-                idx=1;
+        if(!firstLine.contains("$") ){
+            if(firstLine.length()>0 && lastSentence.length()>0){
+                nmeaReceived(lastSentence+firstLine);
             }
-
-            for(;idx<lines.length;idx++){
-                //System.out.print(lines[idx]+"\n");
-                if(lines[idx].matches(".+[*]\\w{2}")){
-                    nmeaReceived(lines[idx]);
-                }else{
-                    lastSentence=lines[idx];
-                    break;
-                }
-            }
-
-            /////
-//
-//            int startIndex = message.indexOf('\n', 0);
-//            if (startIndex == -1) return;
-//            int endIndex = message.indexOf('\n', startIndex + 1);
-//
-//            String nmea;
-//
-//            if (startIndex > 0) {
-//                nmea = message.substring(0, startIndex + 1);
-//                if (nmea.contains("$")) {
-//                    nmeaReceived(nmea);
-//
-//
-//                } else if (lastSentence.length() > 0) {
-//                    nmeaReceived(lastSentence+nmea);
-//                    lastSentence = "";
-//                }
-//            }
-//
-//            while (message.substring(startIndex, message.length() - 1).contains("*") && endIndex > -1) {
-//                nmea = message.substring(startIndex, endIndex - 1);
-//                nmeaReceived(nmea);
-//                int prev = message.indexOf('\n', endIndex + 1);
-//                startIndex = endIndex;
-//                endIndex = prev;
-//            }
-//
-//            if (endIndex != -1) {
-//                if (lastSentence.length() > 0) System.out.print("Something is wrong!!" + "\n");
-//                lastSentence = message.substring(startIndex - 1, message.length()).replace("\n", "");
-//            }
-
+            idx=1;
         }
-    };
+
+        for(;idx<lines.length;idx++){
+            //System.out.print(lines[idx]+"\n");
+            if(lines[idx].matches(".+[*]\\w{2}")){
+                nmeaReceived(lines[idx]);
+            }else{
+                lastSentence=lines[idx];
+                break;
+            }
+        }
+
+
+    }
 
     //GPGGA,
     //GPRMC,
@@ -156,7 +150,7 @@ public class FGPMMOPA6H implements GPSInterface {
             gpsListener.nmeaFrameReceived(NMEA_TYPE.GPVTG,data);
         }else {
             //todo check other types
-           // System.out.print("Something is wrong!! unknown nmea frame!!" + "\n");
+           System.out.print("Something is wrong!! unknown nmea frame!!" + "\n");
 
         }
     }

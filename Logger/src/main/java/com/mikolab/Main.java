@@ -22,11 +22,6 @@ public class Main{
     {
 
 
-        Rtimu rtimu=new Rtimu();
-
-
-
-
 
         BtManager btmanager=new BtManager();
         btmanager.init();
@@ -54,7 +49,7 @@ public class Main{
         while (true)
         {
                 // wait 100 ms before continuing
-                Thread.sleep(10);
+                Thread.sleep(1);
         }
 
 
