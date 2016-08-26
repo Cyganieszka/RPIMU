@@ -145,24 +145,9 @@ public class BtManager implements GPSLogger, DiscoveryListener {
         }
 
 
-
-//        try {
-//            initLocalDevice();
-//            detectDevices();
-//            searchServices();
-//            printSearchResult();
-//            connectToService();
-//
-//
-//
-//        }catch(IOException e){
-//            e.printStackTrace();
-//        }
-
     }
 
-    private final ScheduledExecutorService scheduler = Executors
-            .newScheduledThreadPool(1);
+    private ScheduledExecutorService scheduler;
 
     public void startScheduleTask() {
         /**
@@ -170,6 +155,7 @@ public class BtManager implements GPSLogger, DiscoveryListener {
          * the task, or check if it's done (for recurring tasks, that's not
          * going to be very useful)
          */
+        scheduler = Executors.newScheduledThreadPool(1);
         final ScheduledFuture<?> taskHandle = scheduler.scheduleAtFixedRate(
                 new Runnable() {
                     public void run() {
@@ -226,17 +212,18 @@ public class BtManager implements GPSLogger, DiscoveryListener {
         try {
             if(scheduler.isShutdown()) {
                 dout.writeObject(position);
-                //dout.writeUTF(position.toString());
                 dout.flush();
             }
         } catch (IOException e) {
 
-                if(scheduler.isShutdown());
-                    startScheduleTask();
+            if(scheduler.isShutdown());
+            startScheduleTask();
 
             e.printStackTrace();
         }
     }
+
+
 
 
     /**
