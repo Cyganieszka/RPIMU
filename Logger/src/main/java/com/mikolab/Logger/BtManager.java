@@ -1,7 +1,9 @@
 package com.mikolab.Logger;
 
 import com.mikolab.Location.GpsPosition;
+import com.mikolab.Location.ImuPosition;
 import com.mikolab.Location.interfaces.GPSLogger;
+import com.mikolab.Location.interfaces.IMULogger;
 
 import javax.bluetooth.*;
 import javax.microedition.io.*;
@@ -12,7 +14,7 @@ import java.util.concurrent.*;
 /**
  * Created by agnieszka on 17.05.2016.
  */
-public class BtManager implements GPSLogger, DiscoveryListener {
+public class BtManager implements GPSLogger,IMULogger, DiscoveryListener {
 
     // object used for waiting
     private static Object lock = new Object();
@@ -208,10 +210,17 @@ public class BtManager implements GPSLogger, DiscoveryListener {
 
 
     public void saveGpsPosition(GpsPosition position) {
+       sendObject(position);
+    }
+    public void saveImuPosition(ImuPosition position) {
+        sendObject(position);
+    }
+
+    private void sendObject(Object o){
         if(dout==null )return;
         try {
             if(scheduler.isShutdown()) {
-                dout.writeObject(position);
+                dout.writeObject(o);
                 dout.flush();
             }
         } catch (IOException e) {

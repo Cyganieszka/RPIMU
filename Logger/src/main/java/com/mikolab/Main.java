@@ -32,6 +32,7 @@ public class Main{
         locationManager.addGPSLogger(fileManager);
         locationManager.addGPSLogger(btmanager);
         locationManager.addIMULogger(fileManager);
+        locationManager.addIMULogger(btmanager);
 
 
         FGPMMOPA6H gps= new FGPMMOPA6H(locationManager);
