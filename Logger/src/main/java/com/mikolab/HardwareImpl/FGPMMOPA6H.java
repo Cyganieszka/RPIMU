@@ -26,9 +26,10 @@ public class FGPMMOPA6H implements GPSInterface {
         this.gpsListener = gpsListener;
     }
 
-    String com1="$PMTK251,57600*2C\r\n$PMTK220,100*2F\r\n$PMTK314,0,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0*35\r\n";
-    String com2="";
-    String com3="";
+    String com1="\r\n$PMTK251,57600*2C\r\n";
+    String com2="\r\n$PMTK220,100*2F\r\n";
+    String com3="\r\n$PMTK314,0,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0*35\r\n";
+
 
 
 
@@ -36,7 +37,16 @@ public class FGPMMOPA6H implements GPSInterface {
 
         serial = SerialPort.getCommPorts()[0];
         serial.openPort();
+
+        serial.writeBytes(com1.getBytes(),com1.getBytes().length);
+
         serial.setBaudRate(57600);
+
+        serial.writeBytes(com2.getBytes(),com2.getBytes().length);
+        serial.writeBytes(com3.getBytes(),com3.getBytes().length);
+
+        serial.getDescriptivePortName();
+
         serial.addDataListener(new SerialPortDataListener() {
             StringBuilder sb=new StringBuilder();
             @Override
@@ -63,7 +73,7 @@ public class FGPMMOPA6H implements GPSInterface {
 
 
 
-        serial.writeBytes(com1.getBytes(),com1.getBytes().length);
+
         return true;
 
 
@@ -103,7 +113,7 @@ public class FGPMMOPA6H implements GPSInterface {
         String lastSentence="";
 
     private void parseMessage(String message){
-       // System.out.print(message+"\n");
+
 
         int idx=0;
 
@@ -144,13 +154,15 @@ public class FGPMMOPA6H implements GPSInterface {
         String data=nmea.substring(nmea.indexOf('$')+1);
         if(nmea.contains("GPGGA")){
             gpsListener.nmeaFrameReceived(NMEA_TYPE.GPGGA,data);
+            System.out.print("gpgga\n");
         }else if(nmea.contains("GPRMC")){
             gpsListener.nmeaFrameReceived(NMEA_TYPE.GPRMC,data);
         }else if(nmea.contains("GPVTG")){
             gpsListener.nmeaFrameReceived(NMEA_TYPE.GPVTG,data);
         }else {
             //todo check other types
-           System.out.print("Something is wrong!! unknown nmea frame!!" + "\n");
+          // System.out.print("Something is wrong!! unknown nmea frame!!" + "\n");
+           // System.out.print(nmea + "\n");
 
         }
     }
