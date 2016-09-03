@@ -13,12 +13,14 @@ import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
 
 /**
  * Created by agnieszka on 03.05.2016.
  */
-public class FileManager implements GPSLogger,IMULogger {
+public class FileManager implements GPSLogger,IMULogger,Runnable {
 
     DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
     DateFormat timeFormat = new SimpleDateFormat("HH:mm");
@@ -32,7 +34,29 @@ public class FileManager implements GPSLogger,IMULogger {
     private File gpsFile=null;
     private File imuFile=null;
 
+    BlockingQueue<GpsPosition> gpsToSend= new ArrayBlockingQueue<GpsPosition>(100);
+    BlockingQueue<ImuPosition> imuToSend= new ArrayBlockingQueue<ImuPosition>(100);
 
+
+    @Override
+    public void run() {
+        while(true){
+            if(imuToSend.size()>0){
+                try {
+                    saveImu(imuToSend.take());
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+            if(gpsToSend.size()>0){
+                try {
+                    saveGps(gpsToSend.take());
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+    }
 
     public void init(){
         File path=new File(mainPath+File.separator+rootFolder);
@@ -41,6 +65,9 @@ public class FileManager implements GPSLogger,IMULogger {
         }
         createNewFiles();
         stamp=new Date();
+
+        Thread thread = new Thread(this);
+        thread.start();
     }
 
     String todayFolderPath=null;
@@ -79,24 +106,46 @@ public class FileManager implements GPSLogger,IMULogger {
         }
     }
 
+    @Override
     public void saveGpsPosition(GpsPosition position) {
-        File file= getCurrentGpsFile();
-
-
-        BufferedWriter bw=null;
-        FileWriter fw = null;
         try {
-            fw = new FileWriter(file,true);
-            bw = new BufferedWriter(fw);
-            bw.write(position.toString()+"\n");
-            bw.close();
-        } catch (IOException e) {
+            gpsToSend.put(position);
+        } catch (InterruptedException e) {
             e.printStackTrace();
         }
     }
 
     @Override
     public void saveImuPosition(ImuPosition position) {
+        try {
+            imuToSend.put(position);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+    }
+
+
+
+    public void saveGps(GpsPosition position) {
+        if(position.lat!=0) {
+            File file = getCurrentGpsFile();
+
+
+            BufferedWriter bw = null;
+            FileWriter fw = null;
+            try {
+                fw = new FileWriter(file, true);
+                bw = new BufferedWriter(fw);
+                bw.write(position.toString() + "\n");
+                bw.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+
+    public void saveImu(ImuPosition position) {
         File file= getCurrentImuFile();
 
 

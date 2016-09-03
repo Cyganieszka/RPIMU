@@ -46,7 +46,7 @@ public class MPU9255 implements IMUInterface {
             this.rtimu=imu;
             this.listener=listener;
 
-            rtimu.init();
+            System.out.println("init, poll intervall "+rtimu.getPollInterval());
         }
 
         @Override
@@ -63,7 +63,8 @@ public class MPU9255 implements IMUInterface {
                     this.execute = false;
                 }
                 values = rtimu.getReadings();
-                if(values[0]>0){
+                //System.out.println(values[0]+" "+values[1]+" "+values[2]+" "+values[3]+" "+values[4]);
+                if(values[0]!=0){
                     count++;
                     listener.valuesReceived(values);
 

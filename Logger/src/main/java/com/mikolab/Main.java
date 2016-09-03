@@ -21,6 +21,10 @@ public class Main{
             throws InterruptedException, NumberFormatException
     {
 
+        for(int i=0;i<30;i++){
+            System.out.println("logging start in "+(30-i)+" seconds");
+            Thread.sleep(1000);
+        }
 
 
         BtManager btmanager=new BtManager();

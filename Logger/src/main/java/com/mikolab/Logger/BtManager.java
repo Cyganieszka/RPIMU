@@ -14,7 +14,7 @@ import java.util.concurrent.*;
 /**
  * Created by agnieszka on 17.05.2016.
  */
-public class BtManager implements GPSLogger,IMULogger, DiscoveryListener {
+public class BtManager implements GPSLogger,IMULogger, DiscoveryListener, Runnable{
 
     // object used for waiting
     private static Object lock = new Object();
@@ -25,9 +25,34 @@ public class BtManager implements GPSLogger,IMULogger, DiscoveryListener {
     // display local device address and name
     LocalDevice localDevice;
     DiscoveryAgent agent;
-    StreamConnection conn;
-    ObjectInputStream din;
-    ObjectOutputStream dout;
+    StreamConnection connImu;
+    StreamConnection connGps;
+    //ObjectInputStream din;
+    ObjectOutputStream doutImu;
+    ObjectOutputStream doutGps;
+
+    BlockingQueue<GpsPosition> gpsToSend= new ArrayBlockingQueue<GpsPosition>(100);
+    BlockingQueue<ImuPosition> imuToSend= new ArrayBlockingQueue<ImuPosition>(100);
+
+    @Override
+    public void run() {
+        while(true){
+            if(imuToSend.size()>0){
+                try {
+                    sendObject(imuToSend.take(),doutImu);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+            if(gpsToSend.size()>0){
+                try {
+                    sendObject(gpsToSend.take(),doutGps);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+    }
 
 
     private void initLocalDevice() throws BluetoothStateException {
@@ -35,6 +60,9 @@ public class BtManager implements GPSLogger,IMULogger, DiscoveryListener {
         System.out.println("Address: " + localDevice.getBluetoothAddress());
         System.out.println("Name: " + localDevice.getFriendlyName());
         agent = localDevice.getDiscoveryAgent();
+
+        Thread thread = new Thread(this);
+        thread.start();
     }
 
     private void detectDevices() throws BluetoothStateException {
@@ -105,18 +133,16 @@ public class BtManager implements GPSLogger,IMULogger, DiscoveryListener {
     }
 
     private void connectToService(){
-        if(vecServices.size()>0) {
+        if(vecServices.size()>1) {
 
-            String url = vecServices.get(0);
             try {
-                conn = (StreamConnection) Connector.open(url, Connector.READ_WRITE);
-                System.out.println(url + " ----=" + conn);
+                connGps = (StreamConnection) Connector.open(vecServices.get(0), Connector.READ);
+                System.out.println(vecServices.get(0) + " --gps--=" + connGps);
+                connImu = (StreamConnection) Connector.open(vecServices.get(1), Connector.READ);
+                System.out.println(vecServices.get(1) + " --imu--=" + connImu);
 
-
-                din = new ObjectInputStream(
-                        conn.openInputStream());
-                dout = new ObjectOutputStream((conn.openOutputStream()));
-
+                doutImu = new ObjectOutputStream((connImu.openOutputStream()));
+                doutGps = new ObjectOutputStream((connGps.openOutputStream()));
 
                 shutdown();
             } catch (IOException e) {
@@ -208,15 +234,35 @@ public class BtManager implements GPSLogger,IMULogger, DiscoveryListener {
     }
     }
 
+    int gpsCount =0;
 
     public void saveGpsPosition(GpsPosition position) {
-       sendObject(position);
-    }
-    public void saveImuPosition(ImuPosition position) {
-        sendObject(position);
+        if(gpsCount++==10) {
+            try {
+                gpsToSend.put(position);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            gpsCount=0;
+        }
     }
 
-    private void sendObject(Object o){
+    int imuCount =0;
+
+    public void saveImuPosition(ImuPosition position) {
+        if(imuCount++==10) {
+            try {
+                imuToSend.put(position);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            imuCount=0;
+        }
+    }
+
+
+
+    private void sendObject(Object o,ObjectOutputStream dout){
         if(dout==null )return;
         try {
             if(scheduler.isShutdown()) {
@@ -289,4 +335,6 @@ public class BtManager implements GPSLogger,IMULogger, DiscoveryListener {
             lock.notify();
         }
     }// end method
+
+
 }
