@@ -3,9 +3,7 @@ package com.mikolab;
 import com.mikolab.HardwareInterfaces.GPSInterface;
 import com.mikolab.HardwareInterfaces.IMUInterface;
 
-/**
- * Created by User on 2016-04-26.
- */
+
 public class CommunicationManager {
 
 

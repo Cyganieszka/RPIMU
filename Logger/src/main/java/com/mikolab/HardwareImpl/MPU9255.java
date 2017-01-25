@@ -2,12 +2,11 @@ package com.mikolab.HardwareImpl;
 
 import com.mikolab.HardwareInterfaces.IMUInterface;
 import com.mikolab.Jni.Rtimu;
-import com.mikolab.Location.ImuPosition;
 import com.mikolab.Location.interfaces.IMUListener;
 
-/**
- * Created by User on 2016-04-26.
- */
+import java.util.Calendar;
+import java.util.Locale;
+
 
 public class MPU9255 implements IMUInterface {
 
@@ -55,6 +54,9 @@ public class MPU9255 implements IMUInterface {
             this.execute = true;
             int count=0;
             long timestamp=System.currentTimeMillis();
+            Calendar c=Calendar.getInstance(Locale.getDefault());
+            c.setTimeInMillis(timestamp);
+            timestamp=c.getTime().getTime();
             while (this.execute) {
                 try {
                     this.sleep(rtimu.getPollInterval()/1000);

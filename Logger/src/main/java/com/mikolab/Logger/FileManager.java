@@ -17,9 +17,7 @@ import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
 
-/**
- * Created by agnieszka on 03.05.2016.
- */
+
 public class FileManager implements GPSLogger,IMULogger,Runnable {
 
     DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
@@ -185,7 +183,7 @@ public class FileManager implements GPSLogger,IMULogger,Runnable {
         Date now=new Date();
         long minutesDiff=getDateDiff(stamp,now,TimeUnit.MINUTES);
 
-        if(minutesDiff>10){
+        if(minutesDiff>=10){
             createNewFiles();
             stamp=new Date();
         }

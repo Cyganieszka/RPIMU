@@ -11,9 +11,7 @@ import java.io.*;
 import java.util.Vector;
 import java.util.concurrent.*;
 
-/**
- * Created by agnieszka on 17.05.2016.
- */
+
 public class BtManager implements GPSLogger,IMULogger, DiscoveryListener, Runnable{
 
     // object used for waiting
@@ -237,9 +235,12 @@ public class BtManager implements GPSLogger,IMULogger, DiscoveryListener, Runnab
     int gpsCount =0;
 
     public void saveGpsPosition(GpsPosition position) {
-        if(gpsCount++==10) {
+        if(gpsCount++==30) {
             try {
                 gpsToSend.put(position);
+                if(gpsToSend.size()>50){
+                    System.out.println("gps queue growing! "+gpsToSend.size());
+                }
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
@@ -250,9 +251,12 @@ public class BtManager implements GPSLogger,IMULogger, DiscoveryListener, Runnab
     int imuCount =0;
 
     public void saveImuPosition(ImuPosition position) {
-        if(imuCount++==10) {
+        if(imuCount++==20) {
             try {
                 imuToSend.put(position);
+                if(imuToSend.size()>50){
+                    System.out.println("gps queue growing! "+imuToSend.size());
+                }
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }

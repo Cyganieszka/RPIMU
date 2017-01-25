@@ -7,9 +7,6 @@ import com.mikolab.HardwareInterfaces.GPSInterface;
 import com.mikolab.Location.NMEA_TYPE;
 import com.mikolab.Location.interfaces.GPSListener;
 
-/**
- * Created by User on 2016-04-26.
- */
 public class FGPMMOPA6H implements GPSInterface {
 
     ///
@@ -18,7 +15,8 @@ public class FGPMMOPA6H implements GPSInterface {
     //#define PMTK_API_SET_FIX_CTL_5HZ  "$PMTK300,200,0,0,0,0*2F"
 
     ///
-     SerialPort serial;
+
+    SerialPort serial;
     final GPSListener gpsListener;
     final boolean isFixed=false;
 
@@ -105,11 +103,6 @@ public class FGPMMOPA6H implements GPSInterface {
         return isFixed;
     }
 
-
-
-
-
-
         String lastSentence="";
 
     private void parseMessage(String message){
@@ -148,13 +141,19 @@ public class FGPMMOPA6H implements GPSInterface {
     //GPRMC,
     //GPVTG
 
+    int i=0;
+
     private void nmeaReceived(String nmea){// todo move to nmea parser?
 
 
         String data=nmea.substring(nmea.indexOf('$')+1);
         if(nmea.contains("GPGGA")){
             gpsListener.nmeaFrameReceived(NMEA_TYPE.GPGGA,data);
-            System.out.print("gpgga\n");
+
+            if(i++==10){
+                System.out.println(data);
+                i=0;
+            }
         }else if(nmea.contains("GPRMC")){
             gpsListener.nmeaFrameReceived(NMEA_TYPE.GPRMC,data);
         }else if(nmea.contains("GPVTG")){
